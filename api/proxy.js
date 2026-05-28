@@ -1,71 +1,37 @@
-export const config = {
-  runtime: 'edge',
-};
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export default async function handler(req) {
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
-  }
-
-  const url = new URL(req.url);
-  const scriptUrl = url.searchParams.get('scriptUrl');
-
+  const scriptUrl = req.query.scriptUrl;
   if (!scriptUrl) {
-    return new Response(
-      JSON.stringify({ success: false, error: 'scriptUrl required' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return res.status(400).json({ success: false, error: 'scriptUrl required' });
   }
 
   try {
     if (req.method === 'GET') {
-      // Forward semua params kecuali scriptUrl
       const params = new URLSearchParams();
-      url.searchParams.forEach((val, key) => {
-        if (key !== 'scriptUrl') params.set(key, val);
+      Object.entries(req.query).forEach(([k, v]) => {
+        if (k !== 'scriptUrl') params.set(k, v);
       });
       const targetUrl = scriptUrl + '?' + params.toString();
       const response = await fetch(targetUrl);
-      const text = await response.text();
-      const data = JSON.parse(text);
-      return new Response(JSON.stringify(data), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      const data = await response.json();
+      return res.status(200).json(data);
     }
 
     if (req.method === 'POST') {
-      const body = await req.json();
       const response = await fetch(scriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify(req.body)
       });
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return new Response(JSON.stringify(data), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } catch(e) {
-        return new Response(
-          JSON.stringify({ success: true }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      const data = await response.json();
+      return res.status(200).json(data);
     }
   } catch (err) {
-    return new Response(
-      JSON.stringify({ success: false, error: err.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return res.status(500).json({ success: false, error: err.message });
   }
 }
