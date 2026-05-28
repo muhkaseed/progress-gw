@@ -1845,11 +1845,26 @@ async function loadFinance() {
     const res = await apiGet({ action: 'getFinance' });
     console.log('Finance raw response:', JSON.stringify(res).substring(0, 200));
     if (res && res.success) {
-      finances = (res.data || []).map(f => ({
-        ...f,
-        amount: Number(f.amount) || 0,
-        type: String(f.type || '').toLowerCase().trim()
-      }));
+      finances = (res.data || []).map(f => {
+        // Normalize tanggal ke YYYY-MM-DD
+        let fDate = String(f.date || '').trim();
+        if (fDate.length > 10) {
+          try {
+            const d = new Date(fDate);
+            if (!isNaN(d.getTime())) {
+              fDate = d.toISOString().substring(0, 10);
+            } else {
+              fDate = fDate.substring(0, 10);
+            }
+          } catch(e) { fDate = fDate.substring(0, 10); }
+        }
+        return {
+          ...f,
+          amount: Number(f.amount) || 0,
+          type: String(f.type || '').toLowerCase().trim(),
+          date: fDate
+        };
+      });
     }
     console.log('Finance loaded:', finances.length, 'income:', finances.filter(f=>f.type==='income').length, 'expense:', finances.filter(f=>f.type==='expense').length);
   } catch(e) { console.warn('loadFinance error:', e); finances = []; }
