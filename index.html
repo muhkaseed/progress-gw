@@ -1687,20 +1687,50 @@ async function loadAll() {
     return;
   }
   try {
-    await Promise.all([
-      loadHabits(),
-      loadFinance(),
-      loadCalendarData(),
-      loadHeatmap(),
-      loadStatistics(),
-    ]);
-    renderDashboard();
-    renderMiniCalendar();
-    renderFullCalendar();
+    // Sequential loading - tunggu tiap data sebelum lanjut
+    await loadHabits();
+    await loadFinance();
+    await loadCalendarData();
+    await loadHeatmap();
+    await loadStatistics();
+
+    // Render semua setelah data lengkap
+    refreshAllUI();
   } catch (err) {
     console.warn('Load error:', err);
     renderDemoMode();
   }
+}
+
+function refreshAllUI() {
+  const sum = calcFinanceSummary();
+  const activeH = habits.filter(h => isTrue(h.active)).length;
+  const doneToday = calendarData.filter(c => c.date === todayStr() && isTrue(c.completed)).length;
+  const pct = activeH > 0 ? Math.round((doneToday / activeH) * 100) : 0;
+
+  renderDashboardWithData({
+    total_habits: activeH,
+    completed_today: doneToday,
+    productivity_percent: pct,
+    balance: sum.balance,
+    total_income: sum.income,
+    total_expense: sum.expense
+  });
+  renderStreakList();
+  renderHeatmap();
+  renderMiniCalendar();
+  renderFullCalendar();
+  renderHabitList();
+  renderWeekGrid();
+  renderTransactionList();
+  renderFinanceSummaryCards();
+  setTimeout(() => { initCharts(); initFinCharts(); }, 300);
+}
+
+function calcTodayProductivity() {
+  const activeH = habits.filter(h => isTrue(h.active)).length;
+  const doneToday = calendarData.filter(c => c.date === todayStr() && isTrue(c.completed)).length;
+  return activeH > 0 ? Math.round((doneToday / activeH) * 100) : 0;
 }
 
 function renderDemoMode() {
@@ -1787,30 +1817,43 @@ async function apiPost(data) {
 
 // ── LOADERS ───────────────────────────────────────────────────
 async function loadHabits() {
-  const res = await apiGet({ action: 'getHabits' });
-  if (res.success) habits = res.data || [];
+  try {
+    const res = await apiGet({ action: 'getHabits' });
+    if (res && res.success) { habits = res.data || []; }
+    console.log('Habits loaded:', habits.length);
+  } catch(e) { console.warn('loadHabits error:', e); habits = []; }
 }
 
 async function loadFinance() {
-  const res = await apiGet({ action: 'getFinance' });
-  if (res.success) {
-    finances = res.data || [];
-  }
+  try {
+    const res = await apiGet({ action: 'getFinance' });
+    if (res && res.success) { finances = res.data || []; }
+    console.log('Finance loaded:', finances.length, finances);
+  } catch(e) { console.warn('loadFinance error:', e); finances = []; }
 }
 
 async function loadCalendarData() {
-  const res = await apiGet({ action: 'getCalendar' });
-  if (res.success) calendarData = res.data || [];
+  try {
+    const res = await apiGet({ action: 'getCalendar' });
+    if (res && res.success) { calendarData = res.data || []; }
+    console.log('Calendar loaded:', calendarData.length);
+  } catch(e) { console.warn('loadCalendar error:', e); calendarData = []; }
 }
 
 async function loadHeatmap() {
-  const res = await apiGet({ action: 'getHeatmap' });
-  if (res.success) heatmapData = res.data || [];
+  try {
+    const res = await apiGet({ action: 'getHeatmap' });
+    if (res && res.success) { heatmapData = res.data || []; }
+    console.log('Heatmap loaded:', heatmapData.length);
+  } catch(e) { console.warn('loadHeatmap error:', e); heatmapData = []; }
 }
 
 async function loadStatistics() {
-  const res = await apiGet({ action: 'getStatistics' });
-  if (res.success) statsData = res.data || [];
+  try {
+    const res = await apiGet({ action: 'getStatistics' });
+    if (res && res.success) { statsData = res.data || []; }
+    console.log('Stats loaded:', statsData.length);
+  } catch(e) { console.warn('loadStatistics error:', e); statsData = []; }
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────
@@ -1832,11 +1875,42 @@ function navigate(page) {
 }
 
 function onPageShow(page) {
-  if (page === 'tracker') { renderHabitList(); renderWeekGrid(); }
-  if (page === 'finance') { renderTransactionList(); renderFinanceSummaryCards(); initFinCharts(); }
-  if (page === 'calendar') { renderFullCalendar(); }
-  if (page === 'statistics') { renderStatisticsPage(); }
-  if (page === 'settings') { loadSettings(); }
+  if (page === 'tracker') {
+    renderHabitList();
+    renderWeekGrid();
+  }
+  if (page === 'finance') {
+    renderTransactionList();
+    renderFinanceSummaryCards();
+    setTimeout(() => initFinCharts(), 200);
+  }
+  if (page === 'calendar') {
+    renderFullCalendar();
+  }
+  if (page === 'statistics') {
+    renderStatisticsPage();
+    setTimeout(() => initStatsCharts(), 200);
+  }
+  if (page === 'settings') {
+    loadSettings();
+  }
+  if (page === 'dashboard') {
+    const sum = calcFinanceSummary();
+    const activeH = habits.filter(h => isTrue(h.active)).length;
+    const doneToday = calendarData.filter(c => c.date === todayStr() && isTrue(c.completed)).length;
+    renderDashboardWithData({
+      total_habits: activeH,
+      completed_today: doneToday,
+      productivity_percent: activeH > 0 ? Math.round((doneToday/activeH)*100) : 0,
+      balance: sum.balance,
+      total_income: sum.income,
+      total_expense: sum.expense
+    });
+    renderStreakList();
+    renderHeatmap();
+    renderMiniCalendar();
+    setTimeout(() => initCharts(), 200);
+  }
 }
 
 function openSidebar() {
@@ -2124,7 +2198,10 @@ function renderHabitList() {
 
 function calcHabitProgress(h) {
   const total = Number(h.target_days) || 30;
-  const done = calendarData.filter(c => c.habit_id === h.id && isTrue(c.completed)).length;
+  const done = calendarData.filter(c =>
+    String(c.habit_id) === String(h.id) && isTrue(c.completed)
+  ).length;
+  if (total === 0) return 0;
   return Math.min(100, Math.round((done / total) * 100));
 }
 
@@ -2181,31 +2258,40 @@ function renderWeekGrid() {
 }
 
 async function toggleCheck(habitId, date, el) {
-  // Optimistic UI
   const isDone = el.classList.contains('done');
+  // Optimistic UI update
   el.classList.toggle('done');
   el.textContent = isDone ? '' : '✓';
 
-  // Update local state
-  const idx = calendarData.findIndex(c => c.habit_id === habitId && c.date === date);
+  // Update local calendarData
+  const idx = calendarData.findIndex(c =>
+    String(c.habit_id) === String(habitId) && c.date === date
+  );
   if (idx >= 0) {
     calendarData[idx].completed = !isDone;
   } else {
     calendarData.push({ habit_id: habitId, date: date, completed: !isDone });
   }
 
-  // Update heatmap for today
-  if (date === todayStr()) {
-    updateTodayHeatmap();
-  }
+  // Re-render progress stats
+  const activeHabits = habits.filter(h => isTrue(h.active)).length;
+  const doneToday = calendarData.filter(c => c.date === todayStr() && isTrue(c.completed)).length;
+  const pct = activeHabits > 0 ? Math.round((doneToday / activeHabits) * 100) : 0;
+  setText('stat-done-today', doneToday + '/' + activeHabits);
+  setText('stat-productivity', pct + '%');
+  setText('productivity-badge', pct + '%');
+  const bar = document.getElementById('productivity-bar');
+  if (bar) bar.style.width = pct + '%';
 
+  // Update heatmap
+  if (date === todayStr()) updateTodayHeatmap();
+
+  // Save ke spreadsheet
   if (SCRIPT_URL) {
     try {
       await apiPost({ action: 'toggleHabitCheck', habit_id: habitId, date: date });
-    } catch(e) {}
+    } catch(e) { console.warn('Toggle save error:', e); }
   }
-
-  renderDashboard();
 }
 
 function updateTodayHeatmap() {
