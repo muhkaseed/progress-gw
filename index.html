@@ -931,6 +931,203 @@ html, body {
   }
 }
 
+
+/* ═══════════════════════════════════════════
+   MOBILE COMPLETE FIX
+═══════════════════════════════════════════ */
+
+/* Global overflow prevention */
+*, *::before, *::after {
+  box-sizing: border-box !important;
+}
+html {
+  overflow-x: hidden !important;
+  width: 100% !important;
+}
+body {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+}
+#app, #main-content {
+  overflow-x: hidden !important;
+  width: 100% !important;
+}
+.page {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  padding: 1rem !important;
+}
+.section-card {
+  overflow-x: hidden !important;
+  width: 100% !important;
+}
+
+/* ── WEEK GRID - Scrollable horizontal ── */
+.week-grid-wrapper {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  width: 100% !important;
+}
+.week-days-header {
+  display: grid !important;
+  grid-template-columns: 90px repeat(7, 36px) !important;
+  gap: 3px !important;
+  min-width: max-content !important;
+  padding-bottom: 4px !important;
+}
+.habit-week-grid {
+  min-width: max-content !important;
+}
+.habit-week-row {
+  display: grid !important;
+  grid-template-columns: 90px repeat(7, 36px) !important;
+  gap: 3px !important;
+  align-items: center !important;
+}
+.habit-week-name {
+  font-size: 0.72rem !important;
+  padding: 0 4px !important;
+  width: 90px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.week-day-label {
+  width: 36px !important;
+  padding: 2px !important;
+}
+.week-day-num {
+  width: 26px !important;
+  height: 26px !important;
+  font-size: 0.78rem !important;
+}
+.week-day-name {
+  font-size: 0.58rem !important;
+}
+.habit-check-cell {
+  width: 36px !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+.habit-check {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  font-size: 0.8rem !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── PAGE HEADER fix ── */
+.page-header {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+.page-title {
+  font-size: 1.2rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.btn-primary, .btn-secondary {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── TOPBAR fix ── */
+.topbar {
+  width: 100% !important;
+  overflow: hidden !important;
+  padding: 0 0.8rem !important;
+}
+.topbar-title {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* ── STAT CARDS ── */
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.6rem !important;
+  }
+  .stat-card {
+    padding: 0.75rem !important;
+    gap: 0.6rem !important;
+  }
+  .stat-value {
+    font-size: 0.9rem !important;
+  }
+  .stat-icon {
+    font-size: 1.3rem !important;
+  }
+  .stat-label {
+    font-size: 0.65rem !important;
+  }
+
+  /* Finance cards */
+  .finance-summary-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.6rem !important;
+  }
+
+  /* Charts */
+  .charts-row {
+    grid-template-columns: 1fr !important;
+    gap: 0.8rem !important;
+  }
+
+  /* Calendar */
+  .calendar-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hero title */
+  .page-hero-title {
+    font-size: 1.9rem !important;
+  }
+
+  /* Habit list items */
+  .habit-item {
+    padding: 0.7rem 0.8rem !important;
+    gap: 0.6rem !important;
+  }
+  .habit-item-progress {
+    width: 60px !important;
+  }
+
+  /* Transaction items */
+  .transaction-item {
+    flex-wrap: nowrap !important;
+    gap: 0.5rem !important;
+  }
+  .t-info {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+  .t-name {
+    font-size: 0.78rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .t-amount {
+    font-size: 0.78rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* Modal */
+  .modal {
+    margin: 0.5rem !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -1215,8 +1412,10 @@ html, body {
             <button onclick="nextWeek()" class="cal-btn">›</button>
           </div>
         </div>
-        <div id="week-days-header" class="week-days-header"></div>
-        <div id="habit-week-grid" class="habit-week-grid"></div>
+        <div class="week-grid-wrapper">
+          <div id="week-days-header" class="week-days-header"></div>
+          <div id="habit-week-grid" class="habit-week-grid"></div>
+        </div>
       </div>
       <div class="section-card">
         <div class="section-header">
