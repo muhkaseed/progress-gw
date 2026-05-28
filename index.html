@@ -1819,24 +1819,44 @@ async function apiPost(data) {
 async function loadHabits() {
   try {
     const res = await apiGet({ action: 'getHabits' });
-    if (res && res.success) { habits = res.data || []; }
-    console.log('Habits loaded:', habits.length);
+    if (res && res.success) {
+      habits = (res.data || []).map(h => ({
+        ...h,
+        id: String(h.id || '').trim(),
+        active: h.active === true || h.active === 'TRUE' || h.active === 'true' || h.active === 1
+      }));
+    }
+    console.log('Habits loaded:', habits.length, habits.map(h => h.id + ':' + h.name));
   } catch(e) { console.warn('loadHabits error:', e); habits = []; }
 }
 
 async function loadFinance() {
   try {
     const res = await apiGet({ action: 'getFinance' });
-    if (res && res.success) { finances = res.data || []; }
-    console.log('Finance loaded:', finances.length, finances);
+    console.log('Finance raw response:', JSON.stringify(res).substring(0, 200));
+    if (res && res.success) {
+      finances = (res.data || []).map(f => ({
+        ...f,
+        amount: Number(f.amount) || 0,
+        type: String(f.type || '').toLowerCase().trim()
+      }));
+    }
+    console.log('Finance loaded:', finances.length, 'income:', finances.filter(f=>f.type==='income').length, 'expense:', finances.filter(f=>f.type==='expense').length);
   } catch(e) { console.warn('loadFinance error:', e); finances = []; }
 }
 
 async function loadCalendarData() {
   try {
     const res = await apiGet({ action: 'getCalendar' });
-    if (res && res.success) { calendarData = res.data || []; }
-    console.log('Calendar loaded:', calendarData.length);
+    if (res && res.success) {
+      calendarData = (res.data || []).map(c => ({
+        ...c,
+        habit_id: String(c.habit_id || '').trim(),
+        date: String(c.date || '').trim(),
+        completed: c.completed === true || c.completed === 'TRUE' || c.completed === 'true' || c.completed === 1 || c.completed === '1'
+      }));
+    }
+    console.log('Calendar loaded:', calendarData.length, calendarData);
   } catch(e) { console.warn('loadCalendar error:', e); calendarData = []; }
 }
 
@@ -2242,7 +2262,7 @@ function renderWeekGrid() {
   grid.innerHTML = active.map(h => {
     const cells = days.map(d => {
       const ds = dateStr(d);
-      const check = calendarData.find(c => c.habit_id === h.id && c.date === ds);
+      const check = calendarData.find(c => String(c.habit_id).trim() === String(h.id).trim() && c.date === ds);
       const done = check && isTrue(check.completed);
       return `<div class="habit-check-cell">
         <div class="habit-check${done?' done':''}" onclick="toggleCheck('${h.id}','${ds}',this)">
@@ -2482,8 +2502,13 @@ function renderFinanceSummaryCards() {
 
 function calcFinanceSummary(list) {
   const src = list || finances;
-  const income = src.filter(f => f.type === 'income').reduce((s, f) => s + Number(f.amount), 0);
-  const expense = src.filter(f => f.type === 'expense').reduce((s, f) => s + Number(f.amount), 0);
+  const income = src
+    .filter(f => String(f.type || '').toLowerCase().trim() === 'income')
+    .reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  const expense = src
+    .filter(f => String(f.type || '').toLowerCase().trim() === 'expense')
+    .reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  console.log('calcFinanceSummary - income:', income, 'expense:', expense, 'total rows:', src.length);
   return { income, expense, balance: income - expense };
 }
 
@@ -2916,7 +2941,12 @@ function formatCurrency(amount) {
   return cur + ' ' + n.toLocaleString();
 }
 function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-function isTrue(val) { return val === true || val === 'TRUE' || val === 'true' || val === 1 || val === '1'; }
+function isTrue(val) {
+  if (val === true || val === 1) return true;
+  if (val === false || val === 0 || val === null || val === undefined) return false;
+  const s = String(val).trim().toLowerCase();
+  return s === 'true' || s === '1' || s === 'yes';
+}
 
 function setTopbarDate() {
   const el = document.getElementById('topbar-date');
