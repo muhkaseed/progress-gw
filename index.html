@@ -1686,17 +1686,13 @@ async function loadAll() {
     renderDemoMode();
     return;
   }
-  // Load semua parallel dengan timeout individual
-  const results = await Promise.allSettled([
-    loadHabits(),
-    loadFinance(),
-    loadCalendarData(),
-    loadHeatmap(),
-    loadStatistics(),
-  ]);
-  results.forEach((r, i) => {
-    if (r.status === 'rejected') console.warn('Load failed index', i, r.reason);
-  });
+  // Load sequential - satu per satu agar tidak race condition
+  await loadHabits();
+  await loadFinance();
+  await loadCalendarData();
+  await loadHeatmap();
+  await loadStatistics();
+
   console.log('All loaded - habits:', habits.length, 'finances:', finances.length, 'calendar:', calendarData.length);
   refreshAllUI();
 }
