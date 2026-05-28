@@ -1829,14 +1829,29 @@ async function loadCalendarData() {
   try {
     const res = await apiGet({ action: 'getCalendar' });
     if (res && res.success) {
-      calendarData = (res.data || []).map(c => ({
-        ...c,
-        habit_id: String(c.habit_id || '').trim(),
-        date: String(c.date || '').trim(),
-        completed: c.completed === true || c.completed === 'TRUE' || c.completed === 'true' || c.completed === 1 || c.completed === '1'
-      }));
+      calendarData = (res.data || []).map(c => {
+        // Normalize tanggal ke YYYY-MM-DD
+        let cDate = String(c.date || '').trim();
+        if (cDate.length > 10) {
+          try {
+            const d = new Date(cDate);
+            if (!isNaN(d.getTime())) {
+              // Pakai waktu lokal Jakarta bukan UTC
+              cDate = d.toLocaleDateString('en-CA'); // format YYYY-MM-DD
+            } else {
+              cDate = cDate.substring(0, 10);
+            }
+          } catch(e) { cDate = cDate.substring(0, 10); }
+        }
+        return {
+          ...c,
+          habit_id: String(c.habit_id || '').trim(),
+          date: cDate,
+          completed: c.completed === true || c.completed === 'TRUE' || c.completed === 'true' || c.completed === 1 || c.completed === '1'
+        };
+      });
     }
-    console.log('Calendar loaded:', calendarData.length, calendarData);
+    console.log('Calendar loaded:', calendarData.length, calendarData.map(c => c.date + ':' + c.habit_id + ':' + c.completed));
   } catch(e) { console.warn('loadCalendar error:', e); calendarData = []; }
 }
 
