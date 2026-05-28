@@ -852,280 +852,170 @@ a { cursor: pointer; text-decoration: none; }
 }
 
 
-/* ── MOBILE OVERFLOW FIX ─────────────────────────────────── */
+
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE FIX - Desktop normal, Mobile clean
+═══════════════════════════════════════════════════ */
+
+/* Global - semua device */
 html, body {
-  overflow-x: hidden !important;
-  max-width: 100vw !important;
-}
-#app, #main-content, .page {
-  overflow-x: hidden !important;
-  max-width: 100vw !important;
-}
-
-/* Fix week grid overflow di mobile */
-.week-days-header {
-  display: grid;
-  grid-template-columns: 100px repeat(7, 1fr) !important;
-  gap: 2px !important;
-  overflow-x: hidden !important;
-}
-.habit-week-row {
-  display: grid;
-  grid-template-columns: 100px repeat(7, 1fr) !important;
-  gap: 2px !important;
-  overflow-x: hidden !important;
-}
-.habit-week-name {
-  font-size: 0.68rem !important;
-  padding: 0 2px !important;
-}
-.habit-check {
-  width: 26px !important;
-  height: 26px !important;
-}
-
-/* Fix finance grid di mobile */
-@media (max-width: 480px) {
-  .finance-summary-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .charts-row {
-    grid-template-columns: 1fr !important;
-  }
-  .calendar-layout {
-    grid-template-columns: 1fr !important;
-  }
-  .week-days-header,
-  .habit-week-row {
-    grid-template-columns: 80px repeat(7, 1fr) !important;
-  }
-  .habit-week-name {
-    font-size: 0.62rem !important;
-  }
-  .habit-check {
-    width: 22px !important;
-    height: 22px !important;
-    border-radius: 5px !important;
-    font-size: 0.7rem !important;
-  }
-  .stat-card {
-    padding: 0.8rem !important;
-  }
-  .stat-value {
-    font-size: 1rem !important;
-  }
-  .stat-icon {
-    font-size: 1.4rem !important;
-  }
-  .section-card {
-    padding: 0.9rem !important;
-  }
-  .topbar {
-    padding: 0 0.8rem !important;
-  }
-  .page {
-    padding: 0.8rem !important;
-  }
-  .page-hero-title {
-    font-size: 1.8rem !important;
-  }
-}
-
-
-/* ═══════════════════════════════════════════
-   MOBILE COMPLETE FIX
-═══════════════════════════════════════════ */
-
-/* Global overflow prevention */
-*, *::before, *::after {
-  box-sizing: border-box !important;
-}
-html {
-  overflow-x: hidden !important;
-  width: 100% !important;
-}
-body {
-  overflow-x: hidden !important;
-  width: 100% !important;
-  max-width: 100vw !important;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 #app, #main-content {
-  overflow-x: hidden !important;
-  width: 100% !important;
-}
-.page {
-  overflow-x: hidden !important;
-  width: 100% !important;
-  padding: 1rem !important;
-}
-.section-card {
-  overflow-x: hidden !important;
-  width: 100% !important;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
-/* ── WEEK GRID - Scrollable horizontal ── */
-.week-grid-wrapper {
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-  width: 100% !important;
-}
-.week-days-header {
-  display: grid !important;
-  grid-template-columns: 90px repeat(7, 36px) !important;
-  gap: 3px !important;
-  min-width: max-content !important;
-  padding-bottom: 4px !important;
-}
-.habit-week-grid {
-  min-width: max-content !important;
-}
-.habit-week-row {
-  display: grid !important;
-  grid-template-columns: 90px repeat(7, 36px) !important;
-  gap: 3px !important;
-  align-items: center !important;
-}
-.habit-week-name {
-  font-size: 0.72rem !important;
-  padding: 0 4px !important;
-  width: 90px !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-.week-day-label {
-  width: 36px !important;
-  padding: 2px !important;
-}
-.week-day-num {
-  width: 26px !important;
-  height: 26px !important;
-  font-size: 0.78rem !important;
-}
-.week-day-name {
-  font-size: 0.58rem !important;
-}
-.habit-check-cell {
-  width: 36px !important;
-  display: flex !important;
-  justify-content: center !important;
-}
-.habit-check {
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 6px !important;
-  font-size: 0.8rem !important;
-  flex-shrink: 0 !important;
+/* ── DESKTOP (> 768px) — KEMBALIKAN KE NORMAL ── */
+@media (min-width: 769px) {
+  .page { padding: 1.5rem; }
+  .week-days-header {
+    display: grid;
+    grid-template-columns: 180px repeat(7, 1fr);
+    gap: 4px;
+    min-width: unset;
+  }
+  .habit-week-row {
+    display: grid;
+    grid-template-columns: 180px repeat(7, 1fr);
+    gap: 4px;
+    min-width: unset;
+  }
+  .habit-week-name {
+    font-size: 0.82rem;
+    width: auto;
+    padding: 0 0.5rem;
+  }
+  .habit-check {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .week-day-num {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+  .week-day-name { font-size: 0.65rem; }
+  .stats-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .finance-summary-grid { grid-template-columns: repeat(3, 1fr); }
+  .charts-row { grid-template-columns: 1fr 1fr; }
+  .calendar-layout { grid-template-columns: 1fr 320px; }
+  .page-hero-title { font-size: clamp(2rem, 6vw, 3.2rem); }
+  .page-title { font-size: 1.4rem; }
+  .week-grid-wrapper { overflow-x: visible; }
 }
 
-/* ── PAGE HEADER fix ── */
-.page-header {
-  width: 100% !important;
-  overflow: hidden !important;
-}
-.page-title {
-  font-size: 1.2rem !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-.btn-primary, .btn-secondary {
-  white-space: nowrap !important;
-  flex-shrink: 0 !important;
-}
+/* ── MOBILE (< 768px) — FIX OVERFLOW ── */
+@media (max-width: 768px) {
+  .page { padding: 0.9rem !important; }
 
-/* ── TOPBAR fix ── */
-.topbar {
-  width: 100% !important;
-  overflow: hidden !important;
-  padding: 0 0.8rem !important;
-}
-.topbar-title {
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
+  /* Week grid - scroll horizontal di mobile */
+  .week-grid-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding-bottom: 6px;
+  }
+  .week-days-header {
+    display: grid;
+    grid-template-columns: 90px repeat(7, 34px) !important;
+    gap: 3px !important;
+    min-width: max-content;
+  }
+  .habit-week-grid {
+    min-width: max-content;
+  }
+  .habit-week-row {
+    display: grid;
+    grid-template-columns: 90px repeat(7, 34px) !important;
+    gap: 3px !important;
+    align-items: center;
+  }
+  .habit-week-name {
+    font-size: 0.7rem !important;
+    width: 90px !important;
+    padding: 0 4px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .week-day-label {
+    width: 34px !important;
+    padding: 2px !important;
+  }
+  .week-day-num {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.75rem !important;
+  }
+  .week-day-name { font-size: 0.56rem !important; }
+  .habit-check {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 6px !important;
+    font-size: 0.75rem !important;
+  }
+  .habit-check-cell {
+    width: 34px !important;
+    justify-content: center;
+  }
 
-/* ── STAT CARDS ── */
-@media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 0.6rem !important;
+  /* Page header */
+  .page-header {
+    overflow: hidden;
+    gap: 0.5rem;
   }
-  .stat-card {
-    padding: 0.75rem !important;
-    gap: 0.6rem !important;
+  .page-title {
+    font-size: 1.1rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .stat-value {
-    font-size: 0.9rem !important;
-  }
-  .stat-icon {
-    font-size: 1.3rem !important;
-  }
-  .stat-label {
-    font-size: 0.65rem !important;
-  }
+  .btn-primary { font-size: 0.78rem !important; padding: 0.5rem 0.9rem !important; white-space: nowrap; }
 
-  /* Finance cards */
-  .finance-summary-grid {
-    grid-template-columns: 1fr !important;
-    gap: 0.6rem !important;
-  }
+  /* Topbar */
+  .topbar { padding: 0 0.75rem !important; }
+  .topbar-date { display: none; }
+
+  /* Stats */
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.6rem !important; }
+  .stat-card { padding: 0.75rem !important; gap: 0.5rem !important; }
+  .stat-value { font-size: 0.9rem !important; }
+  .stat-icon { font-size: 1.3rem !important; }
+  .stat-label { font-size: 0.62rem !important; }
+
+  /* Finance */
+  .finance-summary-grid { grid-template-columns: 1fr !important; gap: 0.6rem !important; }
+  .fc-val { font-size: 0.95rem !important; }
 
   /* Charts */
-  .charts-row {
-    grid-template-columns: 1fr !important;
-    gap: 0.8rem !important;
-  }
+  .charts-row { grid-template-columns: 1fr !important; gap: 0.8rem !important; }
 
   /* Calendar */
-  .calendar-layout {
-    grid-template-columns: 1fr !important;
-  }
+  .calendar-layout { grid-template-columns: 1fr !important; }
 
-  /* Hero title */
-  .page-hero-title {
-    font-size: 1.9rem !important;
-  }
+  /* Hero */
+  .page-hero-title { font-size: 1.8rem !important; }
 
-  /* Habit list items */
-  .habit-item {
-    padding: 0.7rem 0.8rem !important;
-    gap: 0.6rem !important;
-  }
-  .habit-item-progress {
-    width: 60px !important;
-  }
+  /* Habit list */
+  .habit-item { padding: 0.7rem 0.75rem !important; }
+  .habit-item-progress { width: 60px !important; }
+  .habit-item-name { font-size: 0.82rem !important; }
 
-  /* Transaction items */
-  .transaction-item {
-    flex-wrap: nowrap !important;
-    gap: 0.5rem !important;
-  }
-  .t-info {
-    min-width: 0 !important;
-    flex: 1 !important;
-  }
-  .t-name {
-    font-size: 0.78rem !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-  .t-amount {
-    font-size: 0.78rem !important;
-    white-space: nowrap !important;
-  }
+  /* Transaction */
+  .t-name { font-size: 0.78rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-amount { font-size: 0.78rem !important; white-space: nowrap; }
 
   /* Modal */
-  .modal {
-    margin: 0.5rem !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-  }
-  .form-row {
-    grid-template-columns: 1fr !important;
-  }
+  .modal { margin: 0.5rem !important; max-height: 88vh !important; overflow-y: auto !important; }
+  .form-row { grid-template-columns: 1fr !important; }
+
+  /* Section card */
+  .section-card { padding: 0.9rem !important; }
 }
 
   </style>
