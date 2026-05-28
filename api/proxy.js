@@ -1,33 +1,48 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+export const config = {
+  runtime: 'edge',
+};
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+export default async function handler(req) {
+  // CORS headers
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 
-  const scriptUrl = req.query.scriptUrl || req.body?.scriptUrl;
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  const url = new URL(req.url);
+  const scriptUrl = url.searchParams.get('scriptUrl');
+
   if (!scriptUrl) {
-    return res.status(400).json({ success: false, error: 'scriptUrl required' });
+    return new Response(
+      JSON.stringify({ success: false, error: 'scriptUrl required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
     if (req.method === 'GET') {
       // Forward semua params kecuali scriptUrl
-      const params = { ...req.query };
-      delete params.scriptUrl;
-      const url = scriptUrl + '?' + new URLSearchParams(params).toString();
-      console.log('Proxying GET:', url);
-      const response = await fetch(url);
+      const params = new URLSearchParams();
+      url.searchParams.forEach((val, key) => {
+        if (key !== 'scriptUrl') params.set(key, val);
+      });
+      const targetUrl = scriptUrl + '?' + params.toString();
+      const response = await fetch(targetUrl);
       const text = await response.text();
-      // Parse JSON (bukan JSONP)
       const data = JSON.parse(text);
-      return res.status(200).json(data);
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     if (req.method === 'POST') {
-      const body = { ...req.body };
-      delete body.scriptUrl;
-      console.log('Proxying POST:', scriptUrl, body);
+      const body = await req.json();
       const response = await fetch(scriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,13 +51,21 @@ export default async function handler(req, res) {
       const text = await response.text();
       try {
         const data = JSON.parse(text);
-        return res.status(200).json(data);
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       } catch(e) {
-        return res.status(200).json({ success: true });
+        return new Response(
+          JSON.stringify({ success: true }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
   } catch (err) {
-    console.error('Proxy error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return new Response(
+      JSON.stringify({ success: false, error: err.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 }
