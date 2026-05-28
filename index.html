@@ -1686,20 +1686,19 @@ async function loadAll() {
     renderDemoMode();
     return;
   }
-  try {
-    // Sequential loading - tunggu tiap data sebelum lanjut
-    await loadHabits();
-    await loadFinance();
-    await loadCalendarData();
-    await loadHeatmap();
-    await loadStatistics();
-
-    // Render semua setelah data lengkap
-    refreshAllUI();
-  } catch (err) {
-    console.warn('Load error:', err);
-    renderDemoMode();
-  }
+  // Load semua parallel dengan timeout individual
+  const results = await Promise.allSettled([
+    loadHabits(),
+    loadFinance(),
+    loadCalendarData(),
+    loadHeatmap(),
+    loadStatistics(),
+  ]);
+  results.forEach((r, i) => {
+    if (r.status === 'rejected') console.warn('Load failed index', i, r.reason);
+  });
+  console.log('All loaded - habits:', habits.length, 'finances:', finances.length, 'calendar:', calendarData.length);
+  refreshAllUI();
 }
 
 function refreshAllUI() {
@@ -1763,7 +1762,8 @@ function renderDemoMode() {
 
 // ── API CALLS ─────────────────────────────────────────────────
 // JSONP untuk GET - bypass CORS Google Apps Script
-function apiGet(params) {
+function apiGet(params, retryCount) {
+  retryCount = retryCount || 0;
   return new Promise((resolve, reject) => {
     if (!SCRIPT_URL) { reject(new Error('No script URL')); return; }
     const cbName = 'pgcb_' + Date.now() + '_' + Math.floor(Math.random()*99999);
@@ -1774,8 +1774,13 @@ function apiGet(params) {
     const script = document.createElement('script');
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error('Timeout - cek URL Apps Script'));
-    }, 20000);
+      if (retryCount < 2) {
+        console.warn('Timeout, retrying...', params.action);
+        apiGet(params, retryCount + 1).then(resolve).catch(reject);
+      } else {
+        reject(new Error('Timeout after retries: ' + params.action));
+      }
+    }, 25000);
 
     function cleanup() {
       clearTimeout(timer);
@@ -1790,7 +1795,12 @@ function apiGet(params) {
 
     script.onerror = function() {
       cleanup();
-      reject(new Error('Gagal load script - cek URL'));
+      if (retryCount < 2) {
+        console.warn('Script error, retrying...', params.action);
+        setTimeout(() => apiGet(params, retryCount + 1).then(resolve).catch(reject), 1000);
+      } else {
+        reject(new Error('Script load failed: ' + params.action));
+      }
     };
     script.src = url.toString();
     document.head.appendChild(script);
@@ -2025,10 +2035,14 @@ function renderStreakList() {
 
 function calcHabitStreak(habitId) {
   let streak = 0;
+  const hId = String(habitId).trim();
   const date = new Date();
   for (let i = 0; i < 365; i++) {
     const d = dateStr(date);
-    const done = calendarData.find(c => c.habit_id === habitId && c.date === d && isTrue(c.completed));
+    const done = calendarData.find(c => {
+      const cId = String(c.habit_id || '').trim();
+      return (cId === hId || hId.endsWith(cId) || cId.endsWith(hId)) && c.date === d && isTrue(c.completed);
+    });
     if (done) streak++;
     else if (i > 0) break;
     date.setDate(date.getDate() - 1);
@@ -2218,9 +2232,11 @@ function renderHabitList() {
 
 function calcHabitProgress(h) {
   const total = Number(h.target_days) || 30;
-  const done = calendarData.filter(c =>
-    String(c.habit_id) === String(h.id) && isTrue(c.completed)
-  ).length;
+  const hId = String(h.id).trim();
+  const done = calendarData.filter(c => {
+    const cId = String(c.habit_id || '').trim();
+    return (cId === hId || hId.endsWith(cId) || cId.endsWith(hId)) && isTrue(c.completed);
+  }).length;
   if (total === 0) return 0;
   return Math.min(100, Math.round((done / total) * 100));
 }
@@ -2262,7 +2278,11 @@ function renderWeekGrid() {
   grid.innerHTML = active.map(h => {
     const cells = days.map(d => {
       const ds = dateStr(d);
-      const check = calendarData.find(c => String(c.habit_id).trim() === String(h.id).trim() && c.date === ds);
+      const hId = String(h.id).trim();
+      const check = calendarData.find(c => {
+        const cId = String(c.habit_id || '').trim();
+        return (cId === hId || hId.endsWith(cId) || cId.endsWith(hId)) && c.date === ds;
+      });
       const done = check && isTrue(check.completed);
       return `<div class="habit-check-cell">
         <div class="habit-check${done?' done':''}" onclick="toggleCheck('${h.id}','${ds}',this)">
@@ -2306,10 +2326,12 @@ async function toggleCheck(habitId, date, el) {
   // Update heatmap
   if (date === todayStr()) updateTodayHeatmap();
 
-  // Save ke spreadsheet
+  // Save ke spreadsheet - pakai habit_id yang full
   if (SCRIPT_URL) {
     try {
-      await apiPost({ action: 'toggleHabitCheck', habit_id: habitId, date: date });
+      await apiPost({ action: 'toggleHabitCheck', habit_id: String(habitId), date: date });
+      // Reload calendar data setelah save untuk sync
+      await loadCalendarData();
     } catch(e) { console.warn('Toggle save error:', e); }
   }
 }
