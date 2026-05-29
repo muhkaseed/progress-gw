@@ -1132,6 +1132,16 @@ html, body {
   position: relative;
 }
 
+
+/* ── COMPLETED HABIT ROW ─────────────────────────────────── */
+.habit-week-row.opacity-50 {
+  opacity: 0.45;
+}
+.habit-check.disabled {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}
+
   </style>
 </head>
 <body>
@@ -1859,14 +1869,17 @@ async function loadAll() {
 
 function refreshAllUI() {
   const sum = calcFinanceSummary();
-  const activeH = habits.filter(h => isTrue(h.active)).length;
-  const doneToday = calendarData.filter(c => c.date === todayStr() && isTrue(c.completed)).length;
-  const pct = activeH > 0 ? Math.round((doneToday / activeH) * 100) : 0;
-
-  console.log('refreshAllUI - habits:', activeH, 'finances:', finances.length, 'balance:', sum.balance);
+  // Hanya hitung habit yang belum selesai (progress < 100%)
+  const inProgressH = habits.filter(h => isTrue(h.active) && calcHabitProgress(h) < 100);
+  const totalActive = inProgressH.length;
+  const doneToday = calendarData.filter(c => {
+    if (c.date !== todayStr() || !isTrue(c.completed)) return false;
+    return inProgressH.some(h => String(h.id).trim() === String(c.habit_id).trim());
+  }).length;
+  const pct = totalActive > 0 ? Math.round((doneToday / totalActive) * 100) : 0;
 
   renderDashboardWithData({
-    total_habits: activeH,
+    total_habits: totalActive,
     completed_today: doneToday,
     productivity_percent: pct,
     balance: sum.balance,
@@ -2071,8 +2084,12 @@ function onPageShow(page) {
   }
   if (page === 'dashboard') {
     const sum = calcFinanceSummary();
-    const activeH = habits.filter(h => isTrue(h.active)).length;
-    const doneToday = calendarData.filter(c => c.date === todayStr() && isTrue(c.completed)).length;
+    const inProgressH = habits.filter(h => isTrue(h.active) && calcHabitProgress(h) < 100);
+    const activeH = inProgressH.length;
+    const doneToday = calendarData.filter(c => {
+      if (c.date !== todayStr() || !isTrue(c.completed)) return false;
+      return inProgressH.some(h => String(h.id).trim() === String(c.habit_id).trim());
+    }).length;
     renderDashboardWithData({
       total_habits: activeH,
       completed_today: doneToday,
@@ -2436,7 +2453,14 @@ function renderWeekGrid() {
     grid.innerHTML = '<div class="empty-state small">Tambah target dulu yuk!</div>';
     return;
   }
-  grid.innerHTML = active.map(h => {
+  // Urutkan: yang belum selesai di atas, yang sudah selesai di bawah
+  const sorted = [
+    ...active.filter(h => calcHabitProgress(h) < 100),
+    ...active.filter(h => calcHabitProgress(h) >= 100)
+  ];
+  grid.innerHTML = sorted.map(h => {
+    const pct = calcHabitProgress(h);
+    const isCompleted = pct >= 100;
     const cells = days.map(d => {
       const ds = dateStr(d);
       const hId = String(h.id).trim();
@@ -2445,16 +2469,24 @@ function renderWeekGrid() {
         return (cId === hId || hId.endsWith(cId) || cId.endsWith(hId)) && c.date === ds;
       });
       const done = check && isTrue(check.completed);
+      // Kalau habit sudah selesai, disable checklist
+      if (isCompleted) {
+        return `<div class="habit-check-cell">
+          <div class="habit-check done disabled" style="opacity:0.4;cursor:not-allowed;" title="Target sudah selesai">
+            ${done ? '✓' : ''}
+          </div>
+        </div>`;
+      }
       return `<div class="habit-check-cell">
         <div class="habit-check${done?' done':''}" onclick="toggleCheck('${h.id}','${ds}',this)">
           ${done ? '✓' : ''}
         </div>
       </div>`;
     }).join('');
-    return `<div class="habit-week-row">
+    return `<div class="habit-week-row${isCompleted?' opacity-50':''}">
       <div class="habit-week-name tooltip-wrap">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.icon || '⭐'} ${h.name}</span>
-        <span class="tooltip-text">${h.icon || '⭐'} ${h.name} • ${h.category}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isCompleted?'text-decoration:line-through;opacity:0.5;':''}">${h.icon || '⭐'} ${h.name}</span>
+        <span class="tooltip-text">${h.icon || '⭐'} ${h.name} • ${h.category}${isCompleted?' • 🏆 Selesai':''}</span>
       </div>
       ${cells}
     </div>`;
@@ -2477,9 +2509,13 @@ async function toggleCheck(habitId, date, el) {
     calendarData.push({ habit_id: habitId, date: date, completed: !isDone });
   }
 
-  // Re-render progress stats
-  const activeHabits = habits.filter(h => isTrue(h.active)).length;
-  const doneToday = calendarData.filter(c => c.date === todayStr() && isTrue(c.completed)).length;
+  // Re-render progress stats - hanya habit yang belum selesai
+  const inProgressHabits = habits.filter(h => isTrue(h.active) && calcHabitProgress(h) < 100);
+  const activeHabits = inProgressHabits.length;
+  const doneToday = calendarData.filter(c => {
+    if (c.date !== todayStr() || !isTrue(c.completed)) return false;
+    return inProgressHabits.some(h => String(h.id).trim() === String(c.habit_id).trim());
+  }).length;
   const pct = activeHabits > 0 ? Math.round((doneToday / activeHabits) * 100) : 0;
   setText('stat-done-today', doneToday + '/' + activeHabits);
   setText('stat-productivity', pct + '%');
@@ -2502,13 +2538,22 @@ async function toggleCheck(habitId, date, el) {
 
 function updateTodayHeatmap() {
   const today = todayStr();
-  const totalH = habits.filter(h => isTrue(h.active)).length;
-  const doneH = calendarData.filter(c => c.date === today && isTrue(c.completed)).length;
+  // Hitung dari habit yang BELUM selesai saja (belum 100%)
+  const activeH = habits.filter(h => isTrue(h.active) && calcHabitProgress(h) < 100);
+  const totalH = activeH.length;
+  const doneH = calendarData.filter(c => {
+    if (c.date !== today || !isTrue(c.completed)) return false;
+    return activeH.some(h => String(h.id).trim() === String(c.habit_id).trim());
+  }).length;
   const score = totalH > 0 ? Math.round((doneH / totalH) * 100) : 0;
   const idx = heatmapData.findIndex(d => d.date === today);
   if (idx >= 0) heatmapData[idx].score = score;
   else heatmapData.push({ date: today, score: score });
   renderHeatmap();
+  // Simpan ke server
+  if (SCRIPT_URL) {
+    apiPost({ action: 'updateStats', date: today, score: score }).catch(e => {});
+  }
 }
 
 function prevWeek() { weekOffset--; renderWeekGrid(); }
