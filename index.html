@@ -1064,6 +1064,74 @@ html, body {
 }
 #skeleton-dashboard.visible { display: block; }
 
+
+/* ── TOOLTIP ─────────────────────────────────────────────── */
+.tooltip-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+}
+.tooltip-wrap .tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  background: #1E2D45;
+  color: var(--text);
+  font-size: 0.75rem;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  white-space: nowrap;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.tooltip-wrap:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* ── COMPLETED HABIT ──────────────────────────────────────── */
+.habit-completed-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.habit-completed-title {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.05em;
+}
+.habit-item.completed-habit {
+  opacity: 0.6;
+  border-color: rgba(16,185,129,0.2) !important;
+}
+.habit-item.completed-habit .habit-item-name {
+  text-decoration: line-through;
+  color: var(--text-dim);
+}
+.badge-completed {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(16,185,129,0.15);
+  border: 1px solid rgba(16,185,129,0.3);
+  color: var(--emerald);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.habit-week-name {
+  position: relative;
+}
+
   </style>
 </head>
 <body>
@@ -2287,9 +2355,13 @@ function renderHabitList() {
     el.innerHTML = '<div class="empty-state">Belum ada target. Yuk tambah! 🚀</div>';
     return;
   }
-  el.innerHTML = active.map(h => {
+
+  const activeHabits = active.filter(h => calcHabitProgress(h) < 100);
+  const completedHabits = active.filter(h => calcHabitProgress(h) >= 100);
+
+  const renderItem = (h, isCompleted) => {
     const pct = calcHabitProgress(h);
-    return `<div class="habit-item">
+    return `<div class="habit-item${isCompleted ? ' completed-habit' : ''}">
       <span class="habit-item-icon">${h.icon || '⭐'}</span>
       <div class="habit-item-info">
         <div class="habit-item-name">${h.name}</div>
@@ -2299,12 +2371,24 @@ function renderHabitList() {
         <div class="habit-item-pct">${pct}%</div>
         <div class="habit-mini-bar"><div class="habit-mini-fill" style="width:${pct}%"></div></div>
       </div>
+      ${isCompleted ? '<span class="badge-completed">🏆 Selesai</span>' : ''}
       <div class="habit-actions">
         <button class="btn-icon" onclick="editHabit('${h.id}')" title="Edit">✏️</button>
         <button class="btn-icon danger" onclick="deleteHabitConfirm('${h.id}')" title="Hapus">🗑️</button>
       </div>
     </div>`;
-  }).join('');
+  };
+
+  let html = activeHabits.map(h => renderItem(h, false)).join('');
+
+  if (completedHabits.length > 0) {
+    html += `<div class="habit-completed-section">
+      <div class="habit-completed-title">✅ TARGET SELESAI (${completedHabits.length})</div>
+      ${completedHabits.map(h => renderItem(h, true)).join('')}
+    </div>`;
+  }
+
+  el.innerHTML = html || '<div class="empty-state">Belum ada target aktif.</div>';
 }
 
 function calcHabitProgress(h) {
@@ -2368,7 +2452,10 @@ function renderWeekGrid() {
       </div>`;
     }).join('');
     return `<div class="habit-week-row">
-      <div class="habit-week-name">${h.icon || '⭐'} ${h.name}</div>
+      <div class="habit-week-name tooltip-wrap">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.icon || '⭐'} ${h.name}</span>
+        <span class="tooltip-text">${h.icon || '⭐'} ${h.name} • ${h.category}</span>
+      </div>
       ${cells}
     </div>`;
   }).join('');
